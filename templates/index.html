@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -13,14 +12,19 @@
     <script src="https://unpkg.com/leaflet@1.6.0/dist/leaflet.js"></script>
     <script src="https://aladin.u-strasbg.fr/AladinLite/api/v2/latest/aladin.min.js"></script>
 </head>
-
 <body>
     <div class="main-container">
+        <nav>
+            <img id="logo" src="/static/nasa_logo.svg" alt="nasa logo">
+            <h1>Welcome to the TESS Proposal Tool</h1>
+            <img id="satellite" src="/static/satellite.png" alt="TESS satellite">
+        </nav>
         <div class="sky-map">
-            <form method="post">
+            <form id="form-sky" method="post">
+                <h2>Search Sky Map</h2>
                 <label for="target">Target:</label>
                 <input type="text" id="target" name="target" value="{{ target }}">
-                <button type="submit">Submit</button>
+                <button type="submit">Search</button>
             </form>
             <div id="aladin-lite-div"></div>
             <script type="text/javascript">
@@ -35,17 +39,22 @@
         </div>
         <div class="query-container">
             <div class="search-input">
-                <form action="/sectors" method="post">
-                    Search Input (RA, Dec, Object Name, or TIC ID): <input type="text" name="search_input"><br>
-                    Search Radius (degrees): <input type="text" name="radius"><br>
-                    <input type="submit" value="Submit">
-                </form>
-
-                <label for="sector">Sector: </label>
-                <input type="number" id="sector" name="sector" placeholder="Input sector number" size="15">
-                <!-- TODO: Button currently has no functionality. Need to create function that checks which radio button has been selected and then makes the corresponding query. -->
-                <button>Search</button>
-                </form>
+                <div class="search-input-1">
+                    <h2>Search by RA, Dec, Object Name, TIC ID</h2>
+                    <form action="/sectors" method="post">
+                        <input id="search_input" type="text" name="search_input" placeholder="RA, Dec, Object Name, or TIC ID" size="30">
+                        <input id="radius" type="text" name="radius" placeholder="Radius (degrees)" size="30">
+                        <input type="submit" value="Search">
+                    </form>
+                </div>
+                <div class="search-input-2">
+                    <h2>Search by sector</h2>
+                    <form>
+                        <input type="number" id="sector" name="sector" placeholder="Sector number" size="15">
+                        <!-- TODO: Button currently has no functionality. Need to create function that checks which radio button has been selected and then makes the corresponding query. -->
+                    <button>Search</button>
+                    </form>
+                </div>
             </div>
             <div class="search-method">
                 <div>
@@ -61,56 +70,75 @@
                     <label for="method-2">e.g, Sector 2</label>
                 </div>
             </div>
-            <div class="search-csv">
-                <p>Alternatively, you can search by uploading a CSV file containing coordinates.</p>
-                <div class="search-csv-buttons">
-                    <!-- TODO: need to add 'accept' attribute to limit which types of files can be uploaded -->
-                    <input type="file">
-                    <!-- TODO: add button functionality so that it retrieves coordinates from the file and then queries them-->
-                    <button>Submit</button>
+            <form action="/csv_upload" method="post" enctype="multipart/form-data">
+                <div class="search-csv">
+                    <h2>Alternatively, you can search by uploading a CSV file containing coordinates.</h2>
+                    <div class="search-csv-buttons">
+                        <input type="file" name="csv_file">
+                        <br><br>
+                        <input type="text" name="radius" placeholder="Enter radius" size="15">
+                        <br><br>
+                        <input type="submit" value="Submit">
+                    </div>
                 </div>
-            </div>
+            </form>
         </div>
+        {% if error %}
+        <div class="alert alert-danger">{{ error }}</div>
+        {% endif %}
+
         <div class="table-display">
             <table>
-                <caption>Target list table view inspector, scrollable table.</caption>
-                <tr>
-                    <th>Sector</th>
-                    <th>Cycle</th>
-                    <th>Camera</th>
-                </tr>
-                {% for result in results %}
-                <tr>
-                    <td>{{ result[0] }}</td>
-                    <td>{{ result[1] }}</td>
-                    <td>{{ result[2] }}</td>
-                </tr>
-                {% endfor %}
+                <caption>Query Results</caption>
+                {% if results %}
+                <thead>
+                    <tr>
+                        {% if csv_file %}
+                            <th>RA</th>
+                            <th>Dec</th>
+                            <th>Sector</th>
+                            <th>Camera</th>
+                            <th>Cycle</th>
+                        {% else %}
+                            
+                            <th>Sector</th>
+                            <th>Camera</th>
+                            <th>Cycle</th>
+                        {% endif %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for i, result in enumerate(results) %}
+                    <tr>
+                        {% if i == 0 or results[i-1][:2] != result[:2] %}
+                        <td>{{ result[0] }}</td>
+                        <td>{{ result[1] }}</td>
+                        {% else %}
+                        <td></td>
+                        <td></td>
+                        {% endif %}
+                        <td>{{ result[2] }}</td>
+                        <td>{{ result[3] }}</td>
+                        <td>{{ result[4] }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                {% endif %}
             </table>
-            <!-- TODO: add button functionality so data can be downloaded/written to a file -->
-            <button>Download</button>
+            <p>Download results as <a href="{{ url_for('download', results=results) }}">CSV file</a></p>
+            </div>
+            <div class="plot1">
+                {{ diagram1|safe }}
+            </div>
+            <div class="plot2">
+                {{ diagram2|safe }}
+            </div>
+            <div class="plot3">
+                {{ diagram4|safe }}
+            </div>
+            <div class="plot4">
+                {{ diagram3|safe }}
+            </div>
         </div>
-        <div class="plot1">
-            {{ diagram1|safe }}
-        </div>
-        <div class="plot2">
-            {{ diagram2|safe }}
-        </div>
-        <div class="plot3">
-            {{ diagram4|safe }}
-        </div>
-
-        <div class="plot4">
-            {{ diagram3|safe }}
-        </div>
-        {# <div class="plot5">#}
-            {# <p>Period radius diagram (Optionally if selecting planet candidates..)</p>#}
-            {# <p>input box</p>#}
-            {# <p>Link dinamic plot box</p>#}
-            {# <p>Buttons box</p>#}
-            {# <p>Table Display box</p>#}
-            {# </div>#}
-    </div>
-</body>
-
+    </body>
 </html>
