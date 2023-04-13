@@ -120,43 +120,49 @@ def sectors(search_input, radius, sector_number):
 
 
 def resolve_input(search_input):
-     # initialize variables with None
+    # Initialize variables with None
     coord = None
     ra = None
     dec = None
     object_name = None
     tic_id = None
-    sector_number = None
 
-    # try to convert the search_input into a SkyCoord object
-    try:
-        coord = SkyCoord(search_input, unit="deg")
-        ra = coord.ra.degree
-        dec = coord.dec.degree
-    except:
-        # if the conversion fails, check if the search_input contains a space
-        if " " in search_input:
-            try:
-                # if the search_input contains a space, split it into ra and dec
-                ra, dec = search_input.split(" ")
-                coord = SkyCoord(f"{ra} {dec}", unit="deg")
-            except:
-                # if this conversion also fails, coord will still be None
-                pass
-        # if coord is still None, check if the search_input is a digit
-        if not coord:
-            if search_input.isdigit():
-                # if the search_input is a digit, store it in tic_id
-                tic_id = search_input
-                object_name = "TIC " + tic_id
-            else:
-                # if the search_input is not a digit, store it in object_name
-                object_name = search_input
+    # Check if the search_input is a digit
+    if search_input.isdigit():
+        # If the search_input is a digit, store it in tic_id
+        tic_id = int(search_input)
+        object_name = "TIC " + str(tic_id)
+        # Query the TIC catalog for the object's coordinates
+        tic_object = Catalogs.query_criteria(catalog="TIC", ID=tic_id)
+        if len(tic_object) > 0:
+            ra = float(tic_object['ra'][0])
+            dec = float(tic_object['dec'][0])
+            coord = SkyCoord(f"{ra} {dec}", unit="deg")
         else:
-            # if the input is not ra/dec, object name or tic id, return an error message
-            return "Error: Please enter a correct input (RA/Dec, object name, or TIC ID)."
+            coord = None
+    else:
+        # Try to convert the search_input into a SkyCoord object
+        try:
+            coord = SkyCoord(search_input, unit="deg")
+            ra = coord.ra.degree
+            dec = coord.dec.degree
+        except:
+            # If the conversion fails, check if the search_input contains a space
+            if " " in search_input:
+                try:
+                    # If the search_input contains a space, split it into ra and dec
+                    ra, dec = search_input.split(" ")
+                    coord = SkyCoord(f"{ra} {dec}", unit="deg")
+                except:
+                    # If this conversion also fails, coord will still be None
+                    pass
+
+            # If coord is still None, store the search_input in object_name
+            if not coord:
+                object_name = search_input
 
     return coord, ra, dec, object_name, tic_id
+
 
 
 def query_sectors(coord, object_name, tic_id, radius):
@@ -203,3 +209,10 @@ def process_sectors(sectors, cutouts):
         result = [current_sector_number, cycle, camera, obs_date]
         results.append(result)  # Add the list to the results
     return results, cycle, obs_date
+
+def get_ra_dec_from_tic_id(tic_id):
+    coord, _, _, _, _ = resolve_input(tic_id)
+    if coord is None:
+        raise ValueError("Error: Invalid TIC ID.")
+    return coord.ra.degree, coord.dec.degree
+
