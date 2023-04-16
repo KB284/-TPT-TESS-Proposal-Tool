@@ -1,7 +1,7 @@
 from bokeh.plotting import figure
 from bokeh.resources import Resources
 from bokeh.embed import file_html
-from flask import render_template, request
+from flask import render_template
 import numpy as np
 from bokeh.models import ColumnDataSource
 from astropy import units as u
